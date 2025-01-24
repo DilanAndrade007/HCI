@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
+import { getDifficulty } from '../services/predict';
 
 const DIFFICULTY_SETTINGS = {
   1: { lanes: 2, vehicleSpeed: 20, spawnRate: 2000, redLightTime: 6000, greenLightTime: 4000, yellowLightTime: 2000, trafficDensity: 0.3 },
