@@ -31,6 +31,7 @@ export const useGameLogic = () => {
   const [crosswalkPosition, setCrosswalkPosition] = useState(window.innerWidth / 2);
   const [currentLanes, setCurrentLanes] = useState(2);
   const [lastCollisionTime, setLastCollisionTime] = useState(0);
+  const [isMovingUp, setIsMovingUp] = useState(false);
 
   useEffect(() => {
     setCurrentLanes(DIFFICULTY_SETTINGS[difficulty].lanes);
@@ -63,24 +64,31 @@ export const useGameLogic = () => {
         const newPos = { ...prev };
         const roadTop = window.innerHeight / 2 - (currentLanes * 20);
         const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
+        const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
 
         switch (e.key) {
           case 'ArrowUp':
-            if (prev.y >= roadTop && prev.y <= roadBottom && !isReturning) {
-              if (trafficLightColor !== 'red') {
-                setWarning('¡Espera a que el semáforo esté en rojo!');
+            setIsMovingUp(true);
+            if (isInRoad && !isReturning) {
+              if (trafficLightColor !== 'red' || !isInCrosswalk()) {
+                if (trafficLightColor !== 'red') {
+                  setWarning('¡Espera a que el semáforo esté en rojo!');
+                } else {
+                  setWarning('¡Usa el paso de cebra!');
+                }
                 loseLife();
-                return prev;
-              }
-              if (!isInCrosswalk()) {
-                setWarning('¡Usa el paso de cebra!');
-                loseLife();
+                setIsReturning(true);
+                setTimeout(() => {
+                  setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
+                  setIsReturning(false);
+                }, 100);
                 return prev;
               }
             }
             newPos.y = Math.max(0, prev.y - STEP);
             break;
           case 'ArrowDown':
+            setIsMovingUp(false);
             newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
             break;
           case 'ArrowLeft':
@@ -107,28 +115,22 @@ export const useGameLogic = () => {
     const settings = DIFFICULTY_SETTINGS[difficulty];
     let timer;
 
-    const switchToYellow = () => {
-      setTrafficLightColor('yellow');
-      timer = setTimeout(() => switchToRed(), settings.yellowLightTime);
+    const switchLight = (color, nextColor, delay) => {
+      setTrafficLightColor(color);
+      if (color === 'red') {
+        setCountdown(Math.floor(delay / 1000));
+      }
+      timer = setTimeout(() => switchLight(nextColor, 
+        nextColor === 'red' ? 'green' : nextColor === 'green' ? 'yellow' : 'red',
+        nextColor === 'red' ? settings.redLightTime : nextColor === 'green' ? settings.greenLightTime : settings.yellowLightTime
+      ), delay);
     };
 
-    const switchToRed = () => {
-      setTrafficLightColor('red');
-      setCountdown(Math.floor(settings.redLightTime / 1000));
-      timer = setTimeout(() => switchToGreen(), settings.redLightTime);
-    };
-
-    const switchToGreen = () => {
-      setTrafficLightColor('green');
-      timer = setTimeout(() => switchToYellow(), settings.greenLightTime);
-    };
-
-    if (trafficLightColor === 'red') {
-      timer = setTimeout(() => switchToGreen(), settings.redLightTime);
-    } else if (trafficLightColor === 'green') {
-      timer = setTimeout(() => switchToYellow(), settings.greenLightTime);
-    } else if (trafficLightColor === 'yellow') {
-      timer = setTimeout(() => switchToRed(), settings.yellowLightTime);
+    if (!timer) {
+      switchLight(trafficLightColor, 
+        trafficLightColor === 'red' ? 'green' : trafficLightColor === 'green' ? 'yellow' : 'red',
+        trafficLightColor === 'red' ? settings.redLightTime : trafficLightColor === 'green' ? settings.greenLightTime : settings.yellowLightTime
+      );
     }
 
     return () => clearTimeout(timer);
@@ -146,35 +148,49 @@ export const useGameLogic = () => {
       const startX = direction === 'right' ? -100 : window.innerWidth + 100;
       const laneY = window.innerHeight / 2 + (laneIndex - (currentLanes - 1) / 2) * 40;
       
-      const newVehicle = {
-        id: Date.now(),
-        x: startX,
-        y: laneY,
-        direction,
-        speed,
-        lane: laneIndex
-      };
-      setVehicles(prev => [...prev, newVehicle]);
+      // Solo verificar colisiones con vehículos en el mismo carril y cerca
+      const canSpawn = !vehicles.some(vehicle => 
+        vehicle.lane === laneIndex && 
+        Math.abs(vehicle.x - startX) < 200
+      );
+
+      if (canSpawn || vehicles.length === 0) {
+        setVehicles(prev => [...prev, {
+          id: Date.now(),
+          x: startX,
+          y: laneY,
+          direction,
+          speed,
+          lane: laneIndex
+        }]);
+      }
     };
 
     const moveVehicles = () => {
       setVehicles(prev => 
         prev.map(vehicle => {
+          let newX = vehicle.x;
+          
           if (trafficLightColor === 'red') {
-            const distanceToCrosswalk = Math.abs(vehicle.x - crosswalkPosition);
             const stopDistance = vehicle.direction === 'right' ? 100 : -100;
+            const shouldStop = 
+              (vehicle.direction === 'right' && vehicle.x < crosswalkPosition - stopDistance) ||
+              (vehicle.direction === 'left' && vehicle.x > crosswalkPosition + stopDistance);
             
-            if ((vehicle.direction === 'right' && vehicle.x < crosswalkPosition - stopDistance) ||
-                (vehicle.direction === 'left' && vehicle.x > crosswalkPosition + stopDistance)) {
-              return vehicle;
+            if (!shouldStop) {
+              newX = vehicle.direction === 'right' ? 
+                vehicle.x + vehicle.speed : 
+                vehicle.x - vehicle.speed;
             }
+          } else {
+            newX = vehicle.direction === 'right' ? 
+              vehicle.x + vehicle.speed : 
+              vehicle.x - vehicle.speed;
           }
           
           return {
             ...vehicle,
-            x: vehicle.direction === 'right' 
-              ? vehicle.x + vehicle.speed 
-              : vehicle.x - vehicle.speed
+            x: newX
           };
         }).filter(vehicle => 
           vehicle.x > -200 && vehicle.x < window.innerWidth + 200
@@ -189,7 +205,7 @@ export const useGameLogic = () => {
       clearInterval(spawnInterval);
       clearInterval(moveInterval);
     };
-  }, [difficulty, trafficLightColor, crosswalkPosition, currentLanes, isGamePaused, lives, gameOver]);
+  }, [difficulty, trafficLightColor, crosswalkPosition, currentLanes]);
 
   useEffect(() => {
     if (isGamePaused || lives <= 0 || gameOver || isReturning) return;
@@ -227,7 +243,7 @@ export const useGameLogic = () => {
         loseLife();
         setTimeout(() => {
           setIsReturning(true);
-          setPlayerPosition({ x: 100, y: window.innerHeight - 150 });
+          setPlayerPosition({ x: playerPosition.x, y: window.innerHeight - 150 });
           setTimeout(() => setIsReturning(false), 100);
         }, 200);
       }
