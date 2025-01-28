@@ -140,6 +140,38 @@ const ScorePanel = styled.div`
   backdrop-filter: blur(8px);
 `;
 
+const DifficultyMeter = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+`;
+
+const DifficultyBar = styled.div`
+  width: 100%;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+  
+  div {
+    height: 100%;
+    width: ${props => (props.value * 10)}%;
+    background: ${props => {
+      if (props.value <= 3) return '#4CAF50';
+      if (props.value <= 6) return '#FFC107';
+      return '#FF5252';
+    }};
+    transition: all 0.3s ease;
+  }
+`;
+
+const DifficultyLabel = styled.div`
+  font-size: 0.9rem;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+`;
+
 const ScoreItem = styled.div`
   display: flex;
   align-items: center;
@@ -171,6 +203,9 @@ const GameContainer = styled.div`
     pointer-events: none;
   }
 `;
+
+
+
 
 const Road = styled.div`
   position: absolute;
@@ -358,7 +393,9 @@ const Game = () => {
     warning,
     currentLanes,
     crosswalkPosition,
-    isReturning
+    isReturning,
+    difficulty,
+    gameStats 
   } = useGameLogic();
 
   const handleReturn = () => {
@@ -432,6 +469,20 @@ const Game = () => {
         <ScoreItem>
           <span>🎮</span> Nivel: {Math.floor(score / 100) + 1}
         </ScoreItem>
+
+        <DifficultyMeter>
+          <DifficultyLabel>
+            <span>Dificultad IA:</span>
+            <span>{difficulty.toFixed(1)}/10</span>
+          </DifficultyLabel>
+          <DifficultyBar value={difficulty}>
+        <div />
+        </DifficultyBar>
+        <DifficultyLabel>
+            <small>Carriles: {currentLanes}</small>
+            <small>Vel: {Math.round(gameStats?.velocidad_vehiculos || 0)} km/h</small>
+        </DifficultyLabel>
+        </DifficultyMeter>
       </ScorePanel>
 
       <ReturnButton onClick={handleReturn}>

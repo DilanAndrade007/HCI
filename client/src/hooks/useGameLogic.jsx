@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
-import { getDifficulty } from '../services/predict';
+
 
 const DIFFICULTY_SETTINGS = {
   1: { lanes: 2, vehicleSpeed: 20, spawnRate: 2000, redLightTime: 6000, greenLightTime: 4000, yellowLightTime: 2000, trafficDensity: 0.3 },
@@ -20,7 +20,7 @@ const kmhToPixels = (kmh) => (kmh * 0.277778) / 60;
 
 export const useGameLogic = () => {
   const navigate = useNavigate();
-  const { score, lives, difficulty, updateScore, loseLife, gameOver } = useGame();
+  const { score, lives, difficulty, gameStats, updateScore, loseLife, gameOver } = useGame();
 
   const [playerPosition, setPlayerPosition] = useState({ x: 100, y: window.innerHeight - 150 });
   const [vehicles, setVehicles] = useState([]);
@@ -35,8 +35,8 @@ export const useGameLogic = () => {
   const [isMovingUp, setIsMovingUp] = useState(false);
 
   useEffect(() => {
-    setCurrentLanes(DIFFICULTY_SETTINGS[difficulty].lanes);
-  }, [difficulty]);
+    setCurrentLanes(gameStats.num_carriles);
+  }, [gameStats.num_carriles]);
 
   const isInCrosswalk = useCallback(() => {
     const crosswalkWidth = 200;
@@ -138,76 +138,91 @@ export const useGameLogic = () => {
   }, [trafficLightColor, isGamePaused, lives, difficulty, gameOver]);
 
   useEffect(() => {
-    if (isGamePaused || lives <= 0 || gameOver) return;
+    if (isGamePaused || lives <= 0 || gameOver) {
+        console.log('Game is paused, over, or no lives');
+        return;
+    }
     
     const settings = DIFFICULTY_SETTINGS[difficulty];
     const speed = kmhToPixels(settings.vehicleSpeed);
 
-    const spawnVehicle = () => {
-      const laneIndex = Math.floor(Math.random() * currentLanes);
-      const direction = Math.random() > 0.5 ? 'right' : 'left';
-      const startX = direction === 'right' ? -100 : window.innerWidth + 100;
-      const laneY = window.innerHeight / 2 + (laneIndex - (currentLanes - 1) / 2) * 40;
-      
-      // Solo verificar colisiones con vehículos en el mismo carril y cerca
-      const canSpawn = !vehicles.some(vehicle => 
-        vehicle.lane === laneIndex && 
-        Math.abs(vehicle.x - startX) < 200
-      );
+    console.log('Setting up vehicle system:', {
+        difficulty,
+        speed,
+        spawnRate: settings.spawnRate,
+        currentLanes
+    });
 
-      if (canSpawn || vehicles.length === 0) {
+    const spawnVehicle = () => {
+        console.log('Attempting to spawn vehicle');
+        const laneIndex = Math.floor(Math.random() * currentLanes);
+        const direction = Math.random() > 0.5 ? 'right' : 'left';
+        const startX = direction === 'right' ? -100 : window.innerWidth + 100;
+        const laneY = window.innerHeight / 2 + (laneIndex - (currentLanes - 1) / 2) * 40;
+        
         setVehicles(prev => [...prev, {
-          id: Date.now(),
-          x: startX,
-          y: laneY,
-          direction,
-          speed,
-          lane: laneIndex
+            id: Date.now(),
+            x: startX,
+            y: laneY,
+            direction,
+            speed,
+            lane: laneIndex
         }]);
-      }
+        console.log('Vehicle spawned');
     };
 
     const moveVehicles = () => {
-      setVehicles(prev => 
-        prev.map(vehicle => {
-          let newX = vehicle.x;
-          
-          if (trafficLightColor === 'red') {
-            const stopDistance = vehicle.direction === 'right' ? 100 : -100;
-            const shouldStop = 
-              (vehicle.direction === 'right' && vehicle.x < crosswalkPosition - stopDistance) ||
-              (vehicle.direction === 'left' && vehicle.x > crosswalkPosition + stopDistance);
+        setVehicles(prev => {
+            if (prev.length === 0) return prev;
             
-            if (!shouldStop) {
-              newX = vehicle.direction === 'right' ? 
-                vehicle.x + vehicle.speed : 
-                vehicle.x - vehicle.speed;
-            }
-          } else {
-            newX = vehicle.direction === 'right' ? 
-              vehicle.x + vehicle.speed : 
-              vehicle.x - vehicle.speed;
-          }
-          
-          return {
-            ...vehicle,
-            x: newX
-          };
-        }).filter(vehicle => 
-          vehicle.x > -200 && vehicle.x < window.innerWidth + 200
-        )
-      );
+            return prev
+                .map(vehicle => {
+                    let newX = vehicle.x;
+                    
+                    if (trafficLightColor === 'red') {
+                        const stopDistance = vehicle.direction === 'right' ? 100 : -100;
+                        const shouldStop = 
+                            (vehicle.direction === 'right' && vehicle.x < crosswalkPosition - stopDistance) ||
+                            (vehicle.direction === 'left' && vehicle.x > crosswalkPosition + stopDistance);
+                        
+                        if (!shouldStop) {
+                            newX = vehicle.direction === 'right' ? 
+                                vehicle.x + vehicle.speed : 
+                                vehicle.x - vehicle.speed;
+                        }
+                    } else {
+                        newX = vehicle.direction === 'right' ? 
+                            vehicle.x + vehicle.speed : 
+                            vehicle.x - vehicle.speed;
+                    }
+                    
+                    return {
+                        ...vehicle,
+                        x: newX
+                    };
+                })
+                .filter(vehicle => 
+                    vehicle.x > -200 && vehicle.x < window.innerWidth + 200
+                );
+        });
     };
 
+    // Create the intervals
     const spawnInterval = setInterval(spawnVehicle, settings.spawnRate);
     const moveInterval = setInterval(moveVehicles, 16);
 
-    return () => {
-      clearInterval(spawnInterval);
-      clearInterval(moveInterval);
-    };
-  }, [difficulty, trafficLightColor, crosswalkPosition, currentLanes]);
+    console.log('Intervals created:', {
+        spawnRate: settings.spawnRate,
+        moveRate: 16
+    });
 
+    // Cleanup function
+    return () => {
+        console.log('Cleaning up vehicle intervals');
+        clearInterval(spawnInterval);
+        clearInterval(moveInterval);
+    };
+}, [isGamePaused, lives, gameOver, difficulty, crosswalkPosition, currentLanes, trafficLightColor]); // Removed vehicles from dependencies
   useEffect(() => {
     if (isGamePaused || lives <= 0 || gameOver || isReturning) return;
 
@@ -256,7 +271,11 @@ export const useGameLogic = () => {
 
   useEffect(() => {
     if (playerPosition.y < 100 && isInCrosswalk() && !isReturning) {
-      updateScore(100);
+      const crossingTime = Date.now() - lastCollisionTime;
+      const timeBonus = Math.max(0, gameStats.tiempo_cruce * 1000 - crossingTime);
+      const bonusPoints = Math.floor(timeBonus / 100);
+      
+      updateScore(100 + bonusPoints);
       setIsReturning(true);
       repositionCrosswalk();
       
@@ -267,7 +286,7 @@ export const useGameLogic = () => {
         }, 200);
       }, 200);
     }
-  }, [playerPosition.y, isInCrosswalk, updateScore, isReturning, repositionCrosswalk]);
+  }, [playerPosition.y, isInCrosswalk, updateScore, isReturning, repositionCrosswalk, gameStats.tiempo_cruce, lastCollisionTime]);
 
   useEffect(() => {
     if (warning) {
@@ -290,7 +309,8 @@ export const useGameLogic = () => {
     currentLanes,
     isInCrosswalk,
     repositionCrosswalk,
-    isReturning
+    isReturning,
+    gameStats 
   };
 };
 
