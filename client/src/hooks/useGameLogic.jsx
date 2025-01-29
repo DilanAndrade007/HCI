@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
+import api from '../services/api';
 
 
 const DIFFICULTY_SETTINGS = {
@@ -51,64 +52,64 @@ export const useGameLogic = () => {
     setCrosswalkPosition(newPosition);
   }, []);
 
+  // Añadir este nuevo useEffect para el controlador
   useEffect(() => {
-    if (gameOver) {
-      navigate('/game-over');
-      return;
-    }
+    if (isGamePaused || lives <= 0 || gameOver) return;
 
-    const handleKeyPress = (e) => {
-      if (isGamePaused || lives <= 0) return;
+    const pollController = setInterval(async () => {
+      try {
+        const response = await api.get('/controller');
+        if (response.data.success && response.data.direction) {
+          const STEP = 20;
+          
+          setPlayerPosition(prev => {
+            const newPos = { ...prev };
+            const roadTop = window.innerHeight / 2 - (currentLanes * 20);
+            const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
+            const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
 
-      const STEP = 20;
-      setPlayerPosition(prev => {
-        const newPos = { ...prev };
-        const roadTop = window.innerHeight / 2 - (currentLanes * 20);
-        const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
-        const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
-
-        switch (e.key) {
-          case 'ArrowUp':
-            setIsMovingUp(true);
-            if (isInRoad && !isReturning) {
-              if (trafficLightColor !== 'red' || !isInCrosswalk()) {
-                if (trafficLightColor !== 'red') {
-                  setWarning('¡Espera a que el semáforo esté en rojo!');
-                } else {
-                  setWarning('¡Usa el paso de cebra!');
+            switch (response.data.direction) {
+              case 'up':
+                setIsMovingUp(true);
+                if (isInRoad && !isReturning) {
+                  if (trafficLightColor !== 'red' || !isInCrosswalk()) {
+                    if (trafficLightColor !== 'red') {
+                      setWarning('¡Espera a que el semáforo esté en rojo!');
+                    } else {
+                      setWarning('¡Usa el paso de cebra!');
+                    }
+                    loseLife();
+                    setIsReturning(true);
+                    setTimeout(() => {
+                      setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
+                      setIsReturning(false);
+                    }, 100);
+                    return prev;
+                  }
                 }
-                loseLife();
-                setIsReturning(true);
-                setTimeout(() => {
-                  setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
-                  setIsReturning(false);
-                }, 100);
-                return prev;
-              }
+                newPos.y = Math.max(0, prev.y - STEP);
+                break;
+              case 'down':
+                setIsMovingUp(false);
+                newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
+                break;
+              case 'left':
+                newPos.x = Math.max(0, prev.x - STEP);
+                break;
+              case 'right':
+                newPos.x = Math.min(window.innerWidth - 60, prev.x + STEP);
+                break;
             }
-            newPos.y = Math.max(0, prev.y - STEP);
-            break;
-          case 'ArrowDown':
-            setIsMovingUp(false);
-            newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
-            break;
-          case 'ArrowLeft':
-            newPos.x = Math.max(0, prev.x - STEP);
-            break;
-          case 'ArrowRight':
-            newPos.x = Math.min(window.innerWidth - 60, prev.x + STEP);
-            break;
-          case 'Escape':
-            setIsGamePaused(prev => !prev);
-            break;
+            return newPos;
+          });
         }
-        return newPos;
-      });
-    };
+      } catch (error) {
+        console.error('Error polling controller:', error);
+      }
+    }, 100); // Poll cada 100ms
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isGamePaused, lives, trafficLightColor, isInCrosswalk, loseLife, isReturning, gameOver, navigate, currentLanes]);
+    return () => clearInterval(pollController);
+  }, [isGamePaused, lives, gameOver, currentLanes, isReturning, trafficLightColor, isInCrosswalk, loseLife]);
 
   useEffect(() => {
     if (isGamePaused || lives <= 0 || gameOver) return;
