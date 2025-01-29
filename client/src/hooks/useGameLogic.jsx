@@ -55,62 +55,85 @@ export const useGameLogic = () => {
   // Añadir este nuevo useEffect para el controlador
   useEffect(() => {
     if (isGamePaused || lives <= 0 || gameOver) return;
-
-    const pollController = setInterval(async () => {
-      try {
-        const response = await api.get('/controller');
-        if (response.data.success && response.data.direction) {
-          const STEP = 20;
-          
-          setPlayerPosition(prev => {
-            const newPos = { ...prev };
-            const roadTop = window.innerHeight / 2 - (currentLanes * 20);
-            const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
-            const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
-
-            switch (response.data.direction) {
-              case 'up':
-                setIsMovingUp(true);
-                if (isInRoad && !isReturning) {
-                  if (trafficLightColor !== 'red' || !isInCrosswalk()) {
-                    if (trafficLightColor !== 'red') {
-                      setWarning('¡Espera a que el semáforo esté en rojo!');
-                    } else {
-                      setWarning('¡Usa el paso de cebra!');
+  
+    let eventSource = null;
+    let isConnected = false;
+  
+    const connect = () => {
+      if (!isConnected) {
+        eventSource = new EventSource('http://127.0.0.1:5000/controller-stream');
+        
+        eventSource.onopen = () => {
+          console.log('SSE connection established');
+          isConnected = true;
+        };
+  
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.direction && data.direction !== 'none') {
+            const STEP = 20;
+            setPlayerPosition(prev => {
+              const newPos = { ...prev };
+              const roadTop = window.innerHeight / 2 - (currentLanes * 20);
+              const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
+              const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
+  
+              switch (data.direction) {
+                case 'up':
+                  setIsMovingUp(true);
+                  if (isInRoad && !isReturning) {
+                    if (trafficLightColor !== 'red' || !isInCrosswalk()) {
+                      if (trafficLightColor !== 'red') {
+                        setWarning('¡Espera a que el semáforo esté en rojo!');
+                      } else {
+                        setWarning('¡Usa el paso de cebra!');
+                      }
+                      loseLife();
+                      setIsReturning(true);
+                      setTimeout(() => {
+                        setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
+                        setIsReturning(false);
+                      }, 100);
+                      return prev;
                     }
-                    loseLife();
-                    setIsReturning(true);
-                    setTimeout(() => {
-                      setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
-                      setIsReturning(false);
-                    }, 100);
-                    return prev;
                   }
-                }
-                newPos.y = Math.max(0, prev.y - STEP);
-                break;
-              case 'down':
-                setIsMovingUp(false);
-                newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
-                break;
-              case 'left':
-                newPos.x = Math.max(0, prev.x - STEP);
-                break;
-              case 'right':
-                newPos.x = Math.min(window.innerWidth - 60, prev.x + STEP);
-                break;
-            }
-            return newPos;
-          });
-        }
-      } catch (error) {
-        console.error('Error polling controller:', error);
+                  newPos.y = Math.max(0, prev.y - STEP);
+                  break;
+                case 'down':
+                  setIsMovingUp(false);
+                  newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
+                  break;
+                case 'left':
+                  newPos.x = Math.max(0, prev.x - STEP);
+                  break;
+                case 'right':
+                  newPos.x = Math.min(window.innerWidth - 60, prev.x + STEP);
+                  break;
+              }
+              return newPos;
+            });
+          }
+        };
+  
+        eventSource.onerror = (error) => {
+          console.error('SSE connection error:', error);
+          isConnected = false;
+          eventSource.close();
+          setTimeout(connect, 1000); // Intenta reconectar después de 1 segundo
+        };
       }
-    }, 100); // Poll cada 100ms
-
-    return () => clearInterval(pollController);
+    };
+  
+    connect();
+  
+    return () => {
+      if (eventSource) {
+        isConnected = false;
+        eventSource.close();
+      }
+    };
   }, [isGamePaused, lives, gameOver, currentLanes, isReturning, trafficLightColor, isInCrosswalk, loseLife]);
-
+  
   useEffect(() => {
     if (isGamePaused || lives <= 0 || gameOver) return;
 
