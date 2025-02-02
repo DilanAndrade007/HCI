@@ -4,13 +4,13 @@ import styled, { keyframes } from 'styled-components';
 // Animaciones
 const float = keyframes`
   0% { transform: translateY(0) rotateY(0); }
-  50% { transform: translateY(-4px) rotateY(1deg); }
+  50% { transform: translateY(-2px) rotateY(1deg); }
   100% { transform: translateY(0) rotateY(0); }
 `;
 
 const glowAnimation = keyframes`
-  0%, 100% { filter: brightness(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3)); }
-  50% { filter: brightness(1.2) drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); }
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 3px rgba(255, 255, 255, 0.3)); }
+  50% { filter: brightness(1.2) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)); }
 `;
 
 const wheelSpin = keyframes`
@@ -18,15 +18,15 @@ const wheelSpin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
-// Contenedores y componentes del vehículo
+// Contenedor del vehículo reducido
 const VehicleWrapper = styled.div`
   position: absolute;
-  width: 90px; /* Vehículo más pequeño */
-  height: 50px; /* Vehículo más pequeño */
+  width: 30px; /* Reducción proporcional */
+  height: 20px; /* Reducción proporcional */
   transition: all 0.2s ease-out;
   animation: ${float} 1s infinite ease-in-out;
   transform-style: preserve-3d;
-  perspective: 1000px;
+  perspective: 500px;
 `;
 
 const CarBody = styled.div`
@@ -37,15 +37,15 @@ const CarBody = styled.div`
 `;
 
 const MainBody = styled.div`
-  height: 35px;
+  height: 18px;
   background: linear-gradient(135deg, #FF4E50, #F9D423);
-  border-radius: 10px;
+  border-radius: 5px;
   position: relative;
   transform-style: preserve-3d;
   box-shadow: 
-    0 5px 15px rgba(0, 0, 0, 0.3),
-    inset 0 -5px 10px rgba(0, 0, 0, 0.2),
-    inset 0 5px 10px rgba(255, 255, 255, 0.4);
+    0 2px 7px rgba(0, 0, 0, 0.3),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.2),
+    inset 0 2px 5px rgba(255, 255, 255, 0.4);
   animation: ${glowAnimation} 2s infinite ease-in-out;
 
   &::before {
@@ -54,114 +54,78 @@ const MainBody = styled.div`
     top: 0;
     left: 0;
     right: 0;
-    height: 45%;
+    height: 50%;
     background: linear-gradient(
       to bottom,
       rgba(255, 255, 255, 0.4) 0%,
       rgba(255, 255, 255, 0.1) 100%
     );
-    border-radius: 10px 10px 0 0;
+    border-radius: 5px 5px 0 0;
   }
 `;
 
 const Hood = styled.div`
   position: absolute;
-  width: 20px;
-  height: 15px;
+  width: 10px;
+  height: 8px;
   background: linear-gradient(135deg, #FF4E50, #F9D423);
-  top: -7px;
-  left: 5px;
-  border-radius: 5px;
+  top: -3px;
+  left: 3px;
+  border-radius: 3px;
   transform: skewX(-15deg);
-  box-shadow: 
-    inset -2px -2px 5px rgba(0, 0, 0, 0.2),
-    inset 2px 2px 5px rgba(255, 255, 255, 0.3);
 `;
 
 const Windshield = styled.div`
   position: absolute;
-  width: 30px;
-  height: 18px;
+  width: 15px;
+  height: 9px;
   background: linear-gradient(135deg, #74ebd5, #ACB6E5);
-  top: -5px;
-  left: 25px;
-  border-radius: 8px 10px 0 0;
+  top: -2px;
+  left: 12px;
+  border-radius: 5px 6px 0 0;
   transform: skewX(-25deg);
-  box-shadow: 
-    inset -2px -2px 5px rgba(0, 0, 0, 0.2),
-    inset 2px 2px 5px rgba(255, 255, 255, 0.4);
 `;
 
 const Wheel = styled.div`
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
   background: linear-gradient(135deg, #333, #666);
   border-radius: 50%;
-  bottom: -5px;
-  box-shadow: 
-    inset -2px -2px 4px rgba(0, 0, 0, 0.6),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.2),
-    0 0 10px rgba(0, 0, 0, 0.5);
+  bottom: -3px;
   animation: ${wheelSpin} 0.5s linear infinite;
-
-  &::before {
-    content: '';
-    position: absolute;
-    width: 60%;
-    height: 60%;
-    top: 20%;
-    left: 20%;
-    background: radial-gradient(circle at center, #777, #444);
-    border-radius: 50%;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    width: 30%;
-    height: 30%;
-    top: 35%;
-    left: 35%;
-    background: #222;
-    border-radius: 50%;
-  }
 `;
 
 const FrontWheel = styled(Wheel)`
-  left: 5px;
+  left: 2px;
 `;
 
 const BackWheel = styled(Wheel)`
-  right: 5px;
+  right: 2px;
 `;
 
 const Lights = styled.div`
   position: absolute;
-  width: ${props => props.isBack ? '10px' : '12px'};
-  height: ${props => props.isBack ? '10px' : '12px'};
+  width: ${props => props.isBack ? '5px' : '6px'};
+  height: ${props => props.isBack ? '5px' : '6px'};
   background: ${props => props.isBack ? 
     'linear-gradient(135deg, #ff4757, #ff6b81)' : 
     'linear-gradient(135deg, #ffd32a, #fffa65)'};
   border-radius: 50%;
   top: 50%;
   transform: translateY(-50%);
-  ${props => props.isBack ? 'right: -5px;' : 'left: -5px;'}
-  box-shadow: 
-    0 0 10px ${props => props.isBack ? '#ff4757' : '#ffd32a'},
-    0 0 20px ${props => props.isBack ? 'rgba(255, 71, 87, 0.5)' : 'rgba(255, 211, 42, 0.5)'};
-  animation: ${glowAnimation} 1s infinite ease-in-out;
+  ${props => props.isBack ? 'right: -3px;' : 'left: -3px;'}
 `;
 
 const Shadow = styled.div`
   position: absolute;
-  bottom: -15px;
+  bottom: -7px;
   left: 10%;
   width: 80%;
-  height: 10px;
+  height: 5px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 50%;
-  filter: blur(4px);
+  filter: blur(2px);
   animation: ${float} 1s infinite ease-in-out reverse;
 `;
 

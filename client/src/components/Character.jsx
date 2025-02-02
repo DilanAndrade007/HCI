@@ -39,10 +39,10 @@ const Character = ({ position = { x: 0, y: 0 } }) => {
     
     // Asignar el emoji según el avatar seleccionado
     switch(selectedAvatar) {
-      case 'boy':
+      case 'niño':
         setAvatarEmoji('👦');
         break;
-      case 'girl':
+      case 'niña':
         setAvatarEmoji('👧');
         break;
       case 'student':

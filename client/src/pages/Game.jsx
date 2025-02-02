@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import { useGameLogic } from '../hooks/useGameLogic';
@@ -17,6 +17,7 @@ import {
   DifficultyLabel, 
   ScoreItem, 
   GameContainer, 
+  GameWrapper,
   Road, 
   RoadLine, 
   CrosswalkContainer, 
@@ -25,13 +26,15 @@ import {
   ReturnButton, 
   Warning, 
   PauseOverlay, 
-  PauseMenu, 
+  PauseMenu,
+  GrassBackground,
+  AIToggleButton,
   Scenery
 } from "../styles/GameStyles.jsx"
 
 const Game = () => {
   const navigate = useNavigate();
-  const { score, lives, resetGame } = useGame();
+  const { score, lives, resetGame, gameOver } = useGame(); 
   const {
     playerPosition,
     vehicles,
@@ -44,7 +47,9 @@ const Game = () => {
     crosswalkPosition,
     isReturning,
     difficulty,
-    gameStats 
+    gameStats,
+    useAI,
+    setUseAI
   } = useGameLogic();
 
   const handleReturn = () => {
@@ -56,13 +61,24 @@ const Game = () => {
 
   const renderLanes = () => {
     const lanes = [];
-    for (let i = 1; i < currentLanes; i++) {
+    // Renderizar líneas para todos los carriles posibles (6 carriles = 5 líneas)
+    for (let i = 1; i < 6; i++) {
       lanes.push(
-        <RoadLine key={i} top={(i * 100) / currentLanes} />
+        <RoadLine 
+          key={i} 
+          index={i} 
+          totalLanes={6} // Siempre usamos 6 como total de carriles
+        />
       );
     }
     return lanes;
   };
+
+  useEffect(() => {
+    if (gameOver) {
+      navigate('/game-over');
+    }
+  }, [gameOver, navigate]);
 
   const renderScenery = () => (
     <>
@@ -102,66 +118,83 @@ const Game = () => {
     </>
   );
 
-  console.log('Rendering Game with lanes:', currentLanes); // Debug
-
   return (
-    <GameContainer>
-      {renderScenery()}
-      
-      <ScorePanel>
-        <ScoreItem>
-          <span>🏆</span> Puntos: {score}
-        </ScoreItem>
-        <ScoreItem color="#ff4757">
-          <span>❤️</span> Vidas: {lives}
-        </ScoreItem>
-        <ScoreItem>
-          <span>🎮</span> Nivel: {Math.floor(score / 100) + 1}
-        </ScoreItem>
+    <GameWrapper>
+      <GameContainer>
+        {renderScenery()}
+        
+        <ScorePanel>
+          <ScoreItem>
+            <span>🏆</span> Puntos: {score}
+          </ScoreItem>
+          <ScoreItem color="#ff4757">
+            <span>❤️</span> Vidas: {lives}
+          </ScoreItem>
+          <ScoreItem>
+            <span>🎮</span> Nivel: {Math.floor(score / 100) + 1}
+          </ScoreItem>
 
-        <DifficultyMeter>
-          <DifficultyLabel>
-            <span>Dificultad IA:</span>
-            <span>{difficulty.toFixed(1)}/10</span>
-          </DifficultyLabel>
+          <DifficultyMeter>
+          {useAI && (
+            <DifficultyLabel>
+              <span>Dificultad IA:</span>
+              <span>{difficulty.toFixed(1)}/10</span>
+            </DifficultyLabel>
+          )}
           <DifficultyBar value={difficulty}>
-        <div />
-        </DifficultyBar>
-        <DifficultyLabel>
+            <div />
+          </DifficultyBar>
+          <DifficultyLabel>
             <small>Carriles: {currentLanes}</small>
             <small>Vel: {Math.round(gameStats?.velocidad_vehiculos || 0)} km/h</small>
-        </DifficultyLabel>
+          </DifficultyLabel>
         </DifficultyMeter>
-      </ScorePanel>
+        </ScorePanel>
 
-      <ReturnButton onClick={handleReturn}>
-        Volver al Menú 🏠
-      </ReturnButton>
+        <ReturnButton onClick={handleReturn}>
+          Volver al Menú 🏠
+        </ReturnButton>
+        <AIToggleButton 
+          onClick={() => setUseAI(!useAI)} 
+          active={useAI}
+        >
+          Modo IA: {useAI ? '🤖 ON' : '⚙️ OFF'}
+        </AIToggleButton>
 
-      <Road lanes={currentLanes}>
-        {renderLanes()}
-        <CrosswalkContainer position={crosswalkPosition}>
-          <Crosswalk />
-        </CrosswalkContainer>
-      </Road>
+        <Road lanes={currentLanes}>
+          <GrassBackground lanes={currentLanes} />
+          {renderLanes()}
+          <CrosswalkContainer position={crosswalkPosition}>
+            <Crosswalk />
+          </CrosswalkContainer>
+        </Road>
 
-      <TrafficLightContainer position={crosswalkPosition}>
-        <TrafficLight color={trafficLightColor} countdown={countdown} />
-      </TrafficLightContainer>
+        <TrafficLightContainer position={crosswalkPosition}>
+          <TrafficLight color={trafficLightColor} countdown={countdown} />
+        </TrafficLightContainer>
 
+        <Character position={playerPosition} isReturning={isReturning} />
 
-      <Character position={playerPosition} isReturning={isReturning} />
+        {vehicles.map(vehicle => (
+          <Vehicle
+            key={vehicle.id}
+            position={{ x: vehicle.x, y: vehicle.y }}
+          />
+        ))}
 
-      {vehicles.map(vehicle => (
-        <Vehicle
-          key={vehicle.id}
-          position={{ x: vehicle.x, y: vehicle.y }}
-          direction={vehicle.direction}
-        />
-      ))}
+        {warning && <Warning>{warning}</Warning>}
 
-      {warning && <Warning>{warning}</Warning>}
-    </GameContainer>
+        {isGamePaused && (
+          <PauseOverlay>
+            <PauseMenu>
+              <h2>Juego Pausado</h2>
+              <button onClick={() => setIsGamePaused(false)}>Continuar</button>
+              <button onClick={handleReturn}>Volver al Menú</button>
+            </PauseMenu>
+          </PauseOverlay>
+        )}
+      </GameContainer>
+    </GameWrapper>
   );
 };
 

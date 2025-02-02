@@ -29,6 +29,28 @@ const HowToPlayContainer = styled.div`
   position: relative;
 `;
 
+const ControlsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const ControlType = styled.div`
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  border-radius: 15px;
+  
+  h3 {
+    font-size: 1.4rem;
+    color: #6C5CE7;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+`;
+
+
 const Particle = styled.div`
   position: absolute;
   width: ${props => props.size || '15px'};
@@ -222,28 +244,55 @@ const HowToPlay = () => {
       </Title>
 
       <ContentCard>
-        <Section borderColor="#6C5CE7">
+      <Section borderColor="#6C5CE7">
           <SectionTitle color="#6C5CE7">
             <span>🎮</span> Controles
           </SectionTitle>
-          <ControlGrid>
-            <ControlKey>
-              <div className="key-icon">⬆️</div>
-              <div className="key-text">Mover Arriba</div>
-            </ControlKey>
-            <ControlKey>
-              <div className="key-icon">⬇️</div>
-              <div className="key-text">Mover Abajo</div>
-            </ControlKey>
-            <ControlKey>
-              <div className="key-icon">⬅️</div>
-              <div className="key-text">Mover Izquierda</div>
-            </ControlKey>
-            <ControlKey>
-              <div className="key-icon">➡️</div>
-              <div className="key-text">Mover Derecha</div>
-            </ControlKey>
-          </ControlGrid>
+          <ControlsContainer>
+            <ControlType>
+              <h3>🎹 Teclado</h3>
+              <ControlGrid>
+                <ControlKey>
+                  <div className="key-icon">⬆️</div>
+                  <div className="key-text">Mover Arriba</div>
+                </ControlKey>
+                <ControlKey>
+                  <div className="key-icon">⬇️</div>
+                  <div className="key-text">Mover Abajo</div>
+                </ControlKey>
+                <ControlKey>
+                  <div className="key-icon">⬅️</div>
+                  <div className="key-text">Mover Izquierda</div>
+                </ControlKey>
+                <ControlKey>
+                  <div className="key-icon">➡️</div>
+                  <div className="key-text">Mover Derecha</div>
+                </ControlKey>
+              </ControlGrid>
+            </ControlType>
+
+            <ControlType>
+              <h3>🎮 Control / Mando</h3>
+              <ControlGrid>
+                <ControlKey>
+                  <div className="key-icon">⬆️</div>
+                  <div className="key-text">Stick Arriba</div>
+                </ControlKey>
+                <ControlKey>
+                  <div className="key-icon">⬇️</div>
+                  <div className="key-text">Stick Abajo</div>
+                </ControlKey>
+                <ControlKey>
+                  <div className="key-icon">⬅️</div>
+                  <div className="key-text">Stick Izquierda</div>
+                </ControlKey>
+                <ControlKey>
+                  <div className="key-icon">➡️</div>
+                  <div className="key-text">Stick Derecha</div>
+                </ControlKey>
+              </ControlGrid>
+            </ControlType>
+          </ControlsContainer>
         </Section>
 
         <Section borderColor="#FFD93D">
