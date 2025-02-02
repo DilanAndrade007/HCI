@@ -57,88 +57,88 @@ export const useGameLogic = () => {
     setCrosswalkPosition(newPosition);
   }, []);
 
-  // useEffect(() => {
-  //   if (isGamePaused || lives <= 0 || gameOver) return;
+  useEffect(() => {
+    if (isGamePaused || lives <= 0 || gameOver) return;
   
-  //   let eventSource = null;
-  //   let isConnected = false;
+    let eventSource = null;
+    let isConnected = false;
   
-  //   const connect = () => {
-  //     if (!isConnected) {
-  //       eventSource = new EventSource('http://127.0.0.1:5000/controller-stream');
+    const connect = () => {
+      if (!isConnected) {
+        eventSource = new EventSource('http://127.0.0.1:5000/controller-stream');
         
-  //       eventSource.onopen = () => {
-  //         console.log('SSE connection established');
-  //         isConnected = true;
-  //       };
+        eventSource.onopen = () => {
+          console.log('SSE connection established');
+          isConnected = true;
+        };
   
-  //       eventSource.onmessage = (event) => {
-  //         const data = JSON.parse(event.data);
-  //         if (data.direction && data.direction !== 'none') {
-  //           const STEP = 20;
-  //           setPlayerPosition(prev => {
-  //             const newPos = { ...prev };
-  //             const roadTop = window.innerHeight / 2 - (currentLanes * 20);
-  //             const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
-  //             const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.direction && data.direction !== 'none') {
+            const STEP = 20;
+            setPlayerPosition(prev => {
+              const newPos = { ...prev };
+              const roadTop = window.innerHeight / 2 - (currentLanes * 20);
+              const roadBottom = window.innerHeight / 2 + (currentLanes * 20);
+              const isInRoad = prev.y >= roadTop && prev.y <= roadBottom;
   
-  //             switch (data.direction) {
-  //               case 'up':
-  //                 setIsMovingUp(true);
-  //                 if (isInRoad && !isReturning) {
-  //                   // Verificamos si está intentando cruzar incorrectamente
-  //                   const isValidCrossing = isInCrosswalk() && trafficLightColor === 'red';
-  //                   if (!isValidCrossing) {
-  //                     if (!isInCrosswalk()) {
-  //                       setWarning('¡Usa el paso de cebra!');
-  //                     } else if (trafficLightColor !== 'red') {
-  //                       setWarning('¡Espera a que el semáforo esté en rojo!');
-  //                     }
-  //                     loseLife();
-  //                     setIsReturning(true);
-  //                     setTimeout(() => {
-  //                       setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
-  //                       setIsReturning(false);
-  //                     }, 100);
-  //                     return prev;
-  //                   }
-  //                 }
-  //                 newPos.y = Math.max(0, prev.y - STEP);
-  //                 break;
-  //               case 'down':
-  //                 setIsMovingUp(false);
-  //                 newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
-  //                 break;
-  //               case 'left':
-  //                 newPos.x = Math.max(0, prev.x - STEP);
-  //                 break;
-  //               case 'right':
-  //                 newPos.x = Math.min(window.innerWidth - 60, prev.x + STEP);
-  //                 break;
-  //             }
-  //             return newPos;
-  //           });
-  //         }
-  //       };
+              switch (data.direction) {
+                case 'up':
+                  setIsMovingUp(true);
+                  if (isInRoad && !isReturning) {
+                    // Verificamos si está intentando cruzar incorrectamente
+                    const isValidCrossing = isInCrosswalk() && trafficLightColor === 'red';
+                    if (!isValidCrossing) {
+                      if (!isInCrosswalk()) {
+                        setWarning('¡Usa el paso de cebra!');
+                      } else if (trafficLightColor !== 'red') {
+                        setWarning('¡Espera a que el semáforo esté en rojo!');
+                      }
+                      loseLife();
+                      setIsReturning(true);
+                      setTimeout(() => {
+                        setPlayerPosition({ x: prev.x, y: window.innerHeight - 150 });
+                        setIsReturning(false);
+                      }, 100);
+                      return prev;
+                    }
+                  }
+                  newPos.y = Math.max(0, prev.y - STEP);
+                  break;
+                case 'down':
+                  setIsMovingUp(false);
+                  newPos.y = Math.min(window.innerHeight - 60, prev.y + STEP);
+                  break;
+                case 'left':
+                  newPos.x = Math.max(0, prev.x - STEP);
+                  break;
+                case 'right':
+                  newPos.x = Math.min(window.innerWidth - 60, prev.x + STEP);
+                  break;
+              }
+              return newPos;
+            });
+          }
+        };
   
-  //       eventSource.onerror = (error) => {
-  //         console.error('SSE connection error:', error);
-  //         isConnected = false;
-  //         eventSource.close();
-  //         setTimeout(connect, 1000);
-  //       };
-  //     }
-  //   };
+        eventSource.onerror = (error) => {
+          console.error('SSE connection error:', error);
+          isConnected = false;
+          eventSource.close();
+          setTimeout(connect, 1000);
+        };
+      }
+    };
   
-  //   connect();
+    connect();
   
-  //   return () => {
-  //     if (eventSource) {
-  //       isConnected = false;
-  //       eventSource.close();
-  //     }
-  //   };
-  // }, [isGamePaused, lives, gameOver, currentLanes, isReturning, trafficLightColor, isInCrosswalk, loseLife]);
+    return () => {
+      if (eventSource) {
+        isConnected = false;
+        eventSource.close();
+      }
+    };
+  }, [isGamePaused, lives, gameOver, currentLanes, isReturning, trafficLightColor, isInCrosswalk, loseLife]);
 
   useEffect(() => {
     if (isGamePaused || lives <= 0 || gameOver) return;
